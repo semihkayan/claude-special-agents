@@ -42,6 +42,7 @@ Restart Claude Code so the hooks register.
     plan-review-gate.py             PreToolUse[ExitPlanMode]
     implementation-router.py        PostToolUse[ExitPlanMode]
     discard-state.py                PreToolUse[EnterPlanMode]
+    inject-plan-rules.py            PostToolUse[EnterPlanMode]
 ```
 
 ## State

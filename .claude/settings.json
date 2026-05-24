@@ -48,6 +48,15 @@
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/special-agents/implementation-router.py"
           }
         ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/special-agents/inject-plan-rules.py"
+          }
+        ]
       }
     ]
   }
