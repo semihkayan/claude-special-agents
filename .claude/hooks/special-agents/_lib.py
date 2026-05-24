@@ -130,23 +130,10 @@ def sweep_stale_states(state_dir: str, prefix: str, ttl_seconds: int) -> None:
 def resolve_plan(payload: dict, session_id: str) -> tuple[str | None, str | None, str | None]:
     tool_input = payload.get("tool_input") or {}
     plan_text = tool_input.get("plan") or None
-    plan_path = tool_input.get("planFilePath") or None
-
-    if plan_path:
-        if not plan_text and os.path.isfile(plan_path):
-            with open(plan_path, encoding="utf-8", errors="replace") as f:
-                plan_text = f.read()
-        if plan_text:
-            return plan_text, plan_path, None
-        return None, plan_path, "plan_unavailable"
-
-    fp = fallback_plan_path(session_id)
-    if plan_text:
-        return plan_text, fp, None
-    if os.path.isfile(fp):
-        with open(fp, encoding="utf-8", errors="replace") as f:
-            return f.read(), fp, None
-    return None, None, "plan_unavailable"
+    if not plan_text:
+        return None, None, "plan_unavailable"
+    plan_path = tool_input.get("planFilePath") or fallback_plan_path(session_id)
+    return plan_text, plan_path, None
 
 
 def parse_ambiguity(text: str) -> int | None:

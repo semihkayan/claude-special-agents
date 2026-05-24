@@ -21,7 +21,7 @@ Drop the `.claude/` directory at the root of the consuming project (or `git clon
 git clone https://github.com/semihkayan/claude-special-agents.git .claude
 ```
 
-Restart Claude Code (or `/reload-plugins`) so the hooks register.
+Restart Claude Code so the hooks register.
 
 ## Layout
 
