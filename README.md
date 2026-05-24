@@ -41,8 +41,7 @@ Restart Claude Code so the hooks register.
     inject-rules-into-subagent.py   PreToolUse[Agent]
     plan-review-gate.py             PreToolUse[ExitPlanMode]
     implementation-router.py        PostToolUse[ExitPlanMode]
-    discard-state.py                PreToolUse[EnterPlanMode]
-    inject-plan-rules.py            PostToolUse[EnterPlanMode]
+    init-plan-mode.py               PostToolUse[EnterPlanMode]
 ```
 
 ## State
