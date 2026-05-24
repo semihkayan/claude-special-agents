@@ -56,9 +56,3 @@ Add to the consuming project's `.gitignore`:
 .claude/hooks/special-agents/plans/
 .claude/plans/
 ```
-
-## Optional settings
-
-`settings.json` ships with `"plansDirectory": ".claude/plans"`, which tells the harness to give Claude a stable plan-file path. The hooks work without it — they fall back to writing the plan under `.claude/hooks/special-agents/plans/` — but a stable path is nicer if you want to browse plans.
-
-The bundled `env` block (`MAX_THINKING_TOKENS`, `CLAUDE_CODE_MAX_OUTPUT_TOKENS`, etc.) mirrors the original development environment. Strip what you don't want.
