@@ -25,9 +25,7 @@ PLAN_ERR = {
 }
 
 SELF_REVIEW_BODY = (
-    "## 1. Review The Plan\n\n"
-    "Silent work — no narration. Only the final report.\n\n"
-    "Dimensions:\n\n"
+    "## 1. Review The Plan Against These Dimensions\n\n"
     "- **Alternatives**: Compare against viable options. Confirm the chosen approach is the strongest.\n"
     "- **Completeness**: Hunt for errors, gaps, missed edge cases, weak assumptions, hidden dependencies, unhandled failures.\n"
     "- **Quality**: Simplicity, SOLID, minimal failure surface, idempotent & resume-safe steps, performance. Flag over-engineering and unjustified abstractions.\n"
@@ -38,8 +36,7 @@ SELF_REVIEW_BODY = (
     "  One caller justifies placement; abstraction requires two.\n"
     "- **Clarity**: The plan must be implementable by a junior developer.\n\n"
     "## 2. Output\n\n"
-    "- **Findings exist**: edit the plan to fix every one of them. Then output only the most important fixes as concise 1-sentence bullets — nothing else.\n"
-    "- **No findings**: do not modify the plan — nothing else.\n\n"
+    "Edit the plan to fix every one of them. Then output only the most important fixes as concise 1-sentence bullets.\n"
     "Then call `ExitPlanMode` again.\n\n"
     "Ultrathink."
 )

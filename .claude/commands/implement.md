@@ -16,4 +16,5 @@ Do not do anything before calling these tools.
   1. Exists and fits → use it
   2. Same responsibility, missing case → extend (keep backward compatibility if clean; otherwise migrate callers)
   3. Nothing fits → add it minimally, following project conventions for placement
+  
   One caller justifies placement; abstraction requires two.
