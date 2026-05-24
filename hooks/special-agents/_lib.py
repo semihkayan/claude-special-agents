@@ -2,7 +2,7 @@
 
 Two responsibilities:
   1. Session state lifecycle (typed schema, atomic JSON I/O, TTL, sweep).
-  2. Plan-file parsing (HTML-comment marker extraction).
+  2. Plan resolution from `ExitPlanMode` tool_input, with fallback path.
 """
 
 import glob
@@ -18,11 +18,11 @@ from typing import NotRequired, TypedDict
 STATE_DIR_NAME = ".claude/special-agents/state"
 PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 STATE_DIR = os.path.join(PROJECT_DIR, STATE_DIR_NAME)
+FALLBACK_PLANS_DIR = os.path.join(PROJECT_DIR, ".claude/special-agents/plans")
 SESSION_STATE_PREFIX = "session"
 TTL_SECONDS = 3600
 
 SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]+$"
-PLAN_PATH_REGEX = re.compile(r'(?:/[\w.-]+)+/\.claude/plans/[\w.-]+\.md')
 AMBIGUITY_REGEX = re.compile(
     r'(?m)^<!--\s*ambiguity\s*:\s*(\d{1,2})(?:\s*/\s*10)?\s*-->$',
     re.IGNORECASE,
@@ -71,6 +71,10 @@ def session_state_path(session_id: str) -> str:
     return os.path.join(STATE_DIR, f"{SESSION_STATE_PREFIX}-{session_id}.json")
 
 
+def fallback_plan_path(session_id: str) -> str:
+    return os.path.join(FALLBACK_PLANS_DIR, f"session-{session_id}.md")
+
+
 def load_state(path: str, ttl: int = TTL_SECONDS, ts_key: str = "created_at") -> SessionState | None:
     if not os.path.exists(path):
         return None
@@ -97,6 +101,7 @@ def write_state_atomic(path: str, state: SessionState) -> None:
 
 
 def write_plan_atomic(path: str, content: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = f"{path}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(content)
@@ -121,21 +126,27 @@ def sweep_stale_states(state_dir: str, prefix: str, ttl_seconds: int) -> None:
             pass
 
 
-# === TRANSCRIPT / PLAN ===
-def read_plan_from_payload(payload: dict) -> tuple[str | None, str | None, str | None]:
-    transcript_path = payload.get("transcript_path")
-    if not transcript_path or not os.path.isfile(transcript_path):
-        return None, None, "transcript_unavailable"
-    with open(transcript_path, encoding="utf-8", errors="replace") as f:
-        content = f.read()
-    matches = PLAN_PATH_REGEX.findall(content)
-    if not matches:
-        return None, None, "plan_path_not_in_transcript"
-    path = matches[-1]
-    if not os.path.isfile(path):
-        return None, path, "plan_file_missing"
-    with open(path, encoding="utf-8", errors="replace") as f:
-        return f.read(), path, None
+# === PLAN RESOLUTION ===
+def resolve_plan(payload: dict, session_id: str) -> tuple[str | None, str | None, str | None]:
+    tool_input = payload.get("tool_input") or {}
+    plan_text = tool_input.get("plan") or None
+    plan_path = tool_input.get("planFilePath") or None
+
+    if plan_path:
+        if not plan_text and os.path.isfile(plan_path):
+            with open(plan_path, encoding="utf-8", errors="replace") as f:
+                plan_text = f.read()
+        if plan_text:
+            return plan_text, plan_path, None
+        return None, plan_path, "plan_unavailable"
+
+    fp = fallback_plan_path(session_id)
+    if plan_text:
+        return plan_text, fp, None
+    if os.path.isfile(fp):
+        with open(fp, encoding="utf-8", errors="replace") as f:
+            return f.read(), fp, None
+    return None, None, "plan_unavailable"
 
 
 def parse_ambiguity(text: str) -> int | None:

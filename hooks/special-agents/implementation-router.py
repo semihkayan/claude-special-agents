@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import json, re
 from _lib import (
-    BlockError, Stage, read_plan_from_payload,
+    BlockError, Stage, resolve_plan,
     load_state, write_state_atomic, session_state_path,
     validate_session_id, utc_now_iso,
 )
@@ -90,15 +90,15 @@ def main() -> None:
     if payload.get("tool_name") != TOOL_NAME:
         sys.exit(0)
 
-    plan_text, abs_plan_path, err = read_plan_from_payload(payload)
-    if err:
-        print(f"implementation-router: plan unavailable ({err})", file=sys.stderr)
-        sys.exit(0)
-
     try:
         sid = validate_session_id(payload.get("session_id"))
     except BlockError as e:
         _log("state_skipped", error=e)
+        sys.exit(0)
+
+    plan_text, abs_plan_path, err = resolve_plan(payload, sid)
+    if err:
+        print(f"implementation-router: plan unavailable ({err})", file=sys.stderr)
         sys.exit(0)
 
     path = session_state_path(sid)

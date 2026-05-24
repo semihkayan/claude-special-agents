@@ -8,7 +8,7 @@ from _lib import (
     TTL_SECONDS, STATE_DIR, SESSION_STATE_PREFIX,
     AMBIGUITY_MIN, AMBIGUITY_MAX, AMBIGUITY_REGEX,
     Stage, BlockError,
-    read_plan_from_payload, write_state_atomic, write_plan_atomic,
+    resolve_plan, write_state_atomic, write_plan_atomic,
     sweep_stale_states, load_state,
     session_state_path, validate_session_id, parse_ambiguity, utc_now_iso,
 )
@@ -19,14 +19,9 @@ PLAN_REVIEW_COUNTER_CAP = 7
 REVIEW_CLEAN_REGEX = re.compile(r'(?m)^<!--\s*review-clean\s*-->$')
 
 PLAN_ERR = {
-    "transcript_unavailable": (
-        "Hook payload lacks transcript_path or the file is unreadable. Cannot resolve plan path."
-    ),
-    "plan_path_not_in_transcript": (
-        "No plan file path found in transcript. Make sure plan mode is active and the harness has emitted the Plan File Info system-reminder."
-    ),
-    "plan_file_missing": (
-        "Plan path resolved from transcript but the file does not exist yet. Write the plan to that path before calling ExitPlanMode."
+    "plan_unavailable": (
+        "ExitPlanMode tool_input has neither a `plan` body nor a `planFilePath`, "
+        "and no fallback plan file exists for this session. Cannot proceed."
     ),
 }
 
@@ -109,10 +104,12 @@ def main() -> None:
             sys.exit(0)
         sid = validate_session_id(payload.get("session_id"))
         sweep_stale_states(STATE_DIR, SESSION_STATE_PREFIX, TTL_SECONDS)
-        plan_text, plan_path, err = read_plan_from_payload(payload)
+        plan_text, plan_path, err = resolve_plan(payload, sid)
         if err:
             _emit_deny(PLAN_ERR.get(err, f"Unknown plan resolution error: {err}"))
             return
+        if not os.path.isfile(plan_path):
+            write_plan_atomic(plan_path, plan_text)
 
         path = session_state_path(sid)
         state = load_state(path) or {}

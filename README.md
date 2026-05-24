@@ -27,15 +27,11 @@ Every prompt is prefixed with five behavioral rules (ultrathink, simplicity, no 
 
 Or via marketplace once published.
 
-## Required project settings
+## Optional project settings
 
-The plugin assumes plans are written to `.claude/plans/` in the user's project (the `plan-review-gate` hook resolves the active plan path from the transcript by matching `.claude/plans/<name>.md`). Set in the consuming project's `.claude/settings.json`:
+No configuration is required. The plugin reads the plan straight from the `ExitPlanMode` tool call's `tool_input` (both `plan` text and `planFilePath`).
 
-```json
-{
-  "plansDirectory": ".claude/plans"
-}
-```
+If the consuming project sets `plansDirectory` in its `.claude/settings.json`, Claude will write its plan there and the plugin will use that path. Otherwise the plugin writes a copy to `.claude/special-agents/plans/session-<id>.md` inside the project and passes that to sub-agents.
 
 ## Recommended project settings
 
@@ -59,11 +55,10 @@ These match the original development environment but are not required:
 
 ## State
 
-Per-session state is written to `$CLAUDE_PROJECT_DIR/.claude/special-agents/state/session-<id>.json` with a 1-hour TTL; stale files are swept on each `ExitPlanMode`. Add to the consuming project's `.gitignore`:
+Per-session state is written to `$CLAUDE_PROJECT_DIR/.claude/special-agents/state/session-<id>.json` with a 1-hour TTL; stale files are swept on each `ExitPlanMode`. Fallback plan copies (when `planFilePath` is absent from the tool call) live under `$CLAUDE_PROJECT_DIR/.claude/special-agents/plans/`. Add to the consuming project's `.gitignore`:
 
 ```
-.claude/special-agents/state/
-.claude/plans/
+.claude/special-agents/
 ```
 
 ## Layout
