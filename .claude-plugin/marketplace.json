@@ -1,0 +1,13 @@
+{
+  "name": "special-agents",
+  "owner": {
+    "name": "Semih Kayan"
+  },
+  "plugins": [
+    {
+      "name": "special-agents",
+      "source": ".",
+      "description": "Plan/implement/review pipeline with ambiguity-gated routing."
+    }
+  ]
+}

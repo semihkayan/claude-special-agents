@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+LIGHT_MODEL_RE = re.compile(r"^(sonnet|haiku|claude-sonnet|claude-haiku)", re.IGNORECASE)
+FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
+
+RULES_HEAVY = (
+    "## Behavioral Rules\n"
+    "1. Ultrathink — consider edge cases, trade-offs, and second-order effects.\n"
+    "2. When coding, always seek maintainability, simplicity, minimal failure surface, idempotent & resume-safe steps and root-cause over workaround.\n"
+    "3. Default no code comments — code should be self-explanatory.\n"
+    "4. Be extremely concise.\n"
+    "5. Don't assume — verify.\n"
+    "6. If you encounter a blocker, escalate it.\n\n"
+    "---\n\n"
+)
+
+RULES_LIGHT = (
+    "## Behavioral Rules\n"
+    "1. When coding, always seek maintainability, simplicity, minimal failure surface, idempotent & resume-safe steps and root-cause over workaround.\n"
+    "2. Default no code comments — code should be self-explanatory.\n"
+    "3. Be concise.\n"
+    "4. Don't assume — verify.\n"
+    "5. If you encounter a blocker, escalate it.\n\n"
+    "---\n\n"
+)
+
+
+def _yaml_scalar(frontmatter: str, key: str) -> str | None:
+    pattern = re.compile(rf"^\s*{re.escape(key)}\s*:\s*(.+?)\s*$", re.MULTILINE)
+    m = pattern.search(frontmatter)
+    if not m:
+        return None
+    value = m.group(1).strip().strip("\"'")
+    return value or None
+
+
+def _agent_search_dirs() -> list[Path]:
+    dirs: list[Path] = [Path(__file__).resolve().parent.parent.parent / "agents"]
+    project = os.environ.get("CLAUDE_PROJECT_DIR")
+    if project:
+        dirs.append(Path(project) / ".claude" / "agents")
+    dirs.append(Path.home() / ".claude" / "agents")
+    return dirs
+
+
+def find_declared_model(subagent_type: str) -> str | None:
+    if not subagent_type:
+        return None
+    for directory in _agent_search_dirs():
+        if not directory.is_dir():
+            continue
+        for path in directory.glob("*.md"):
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            fm_match = FRONTMATTER_RE.match(text)
+            if not fm_match:
+                continue
+            frontmatter = fm_match.group(1)
+            if _yaml_scalar(frontmatter, "name") != subagent_type:
+                continue
+            return _yaml_scalar(frontmatter, "model")
+    return None
+
+
+def select_rules(tool_input: dict) -> str:
+    model = tool_input.get("model") or find_declared_model(tool_input.get("subagent_type", ""))
+    if model and LIGHT_MODEL_RE.match(model):
+        return RULES_LIGHT
+    return RULES_HEAVY
+
+
+def main() -> int:
+    data = json.load(sys.stdin)
+    tool_input = data.get("tool_input") or {}
+    new_input = dict(tool_input)
+    new_input["prompt"] = select_rules(tool_input) + tool_input.get("prompt", "")
+
+    json.dump(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "updatedInput": new_input,
+            }
+        },
+        sys.stdout,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
