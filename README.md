@@ -4,7 +4,7 @@ Project-level `.claude/` setup for a plan/implement/review pipeline:
 
 1. `/implement` enters plan mode in a worktree.
 2. On `ExitPlanMode`, the plan is gated through:
-   - **Self-review** loop (up to 7 passes; ends when the plan contains `<!-- review-clean -->`).
+   - **Self-review** loop (up to 7 passes; ends when the plan is unchanged between iterations).
    - **Clarity check** via the `plan-clarity-reviewer` sub-agent, producing an ambiguity score (`<!-- ambiguity: N -->`).
 3. Implementation is routed by score:
    - 1–6 → `junior-plan-implementer` sub-agent on Sonnet.

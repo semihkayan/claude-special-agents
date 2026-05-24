@@ -2,8 +2,8 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import hashlib
 import json
-import re
 from _lib import (
     TTL_SECONDS, STATE_DIR, SESSION_STATE_PREFIX,
     AMBIGUITY_MIN, AMBIGUITY_MAX, AMBIGUITY_REGEX,
@@ -16,7 +16,6 @@ from _lib import (
 # === CONFIG ===
 TOOL_NAME = "ExitPlanMode"
 PLAN_REVIEW_COUNTER_CAP = 7
-REVIEW_CLEAN_REGEX = re.compile(r'(?m)^<!--\s*review-clean\s*-->$')
 
 PLAN_ERR = {
     "plan_unavailable": (
@@ -40,7 +39,7 @@ SELF_REVIEW_BODY = (
     "- **Clarity**: The plan must be implementable by a junior developer.\n\n"
     "## 2. Output\n\n"
     "- **Findings exist**: edit the plan to fix every one of them. Then output only the most important fixes as concise 1-sentence bullets — nothing else.\n"
-    "- **No findings**: append `<!-- review-clean -->` on its own line to the plan file — nothing else.\n\n"
+    "- **No findings**: do not modify the plan — nothing else.\n\n"
     "Then call `ExitPlanMode` again.\n\n"
     "Ultrathink."
 )
@@ -55,7 +54,7 @@ CLARITY_BODY = (
     "    prompt: Plan file: {plan_path}\n"
     "  )\n\n"
     "Then, read the reviewer's report. Resolve each unclear item by editing the plan. "
-    "Take the ambiguity score from the report and append it to the plan file as an HTML comment on its own line:\n\n"
+    "Copy the ambiguity score verbatim from the report — do not adjust it based on the fixes you made. Append it to the plan file as an HTML comment on its own line:\n\n"
     "<!-- ambiguity: <1-10> -->\n\n"
     "Then call ExitPlanMode again."
 )
@@ -84,8 +83,8 @@ def _emit_deny(reason: str) -> None:
     }, ensure_ascii=False))
 
 
-def _review_is_clean(plan_text: str) -> bool:
-    return bool(REVIEW_CLEAN_REGEX.search(plan_text))
+def _plan_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _check_ambiguity(plan_text: str) -> tuple[str | None, int | None]:
@@ -120,20 +119,22 @@ def main() -> None:
                 "created_at": utc_now_iso(),
                 "stage": Stage.PLAN_REVIEW,
                 "plan_review_counter": 1,
+                "plan_hash": _plan_hash(plan_text),
             })
             _emit_deny(SELF_REVIEW_BODY)
             return
 
         if stage == Stage.PLAN_REVIEW:
             counter = state.get("plan_review_counter", 1)
-            if _review_is_clean(plan_text) or counter >= PLAN_REVIEW_COUNTER_CAP:
+            current_hash = _plan_hash(plan_text)
+            if current_hash == state.get("plan_hash") or counter >= PLAN_REVIEW_COUNTER_CAP:
                 state["stage"] = Stage.CLARITY_CHECK
                 write_state_atomic(path, state)
-                if REVIEW_CLEAN_REGEX.search(plan_text):
-                    write_plan_atomic(plan_path, REVIEW_CLEAN_REGEX.sub("", plan_text))
+                write_plan_atomic(plan_path, plan_text)
                 _emit_deny(CLARITY_BODY.format(plan_path=plan_path))
             else:
                 state["plan_review_counter"] = counter + 1
+                state["plan_hash"] = current_hash
                 write_state_atomic(path, state)
                 _emit_deny(SELF_REVIEW_BODY)
             return

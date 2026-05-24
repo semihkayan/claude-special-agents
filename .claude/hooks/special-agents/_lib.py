@@ -45,6 +45,7 @@ class SessionState(TypedDict):
     created_at: str
     stage: NotRequired[str]
     plan_review_counter: NotRequired[int]
+    plan_hash: NotRequired[str]
     ambiguity: NotRequired[int]
     impl: NotRequired[ImplState]
 
