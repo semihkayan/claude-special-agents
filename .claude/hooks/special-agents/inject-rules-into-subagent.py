@@ -40,7 +40,7 @@ def _yaml_scalar(frontmatter: str, key: str) -> str | None:
 
 
 def _agent_search_dirs() -> list[Path]:
-    dirs: list[Path] = [Path(__file__).resolve().parent.parent.parent / "agents"]
+    dirs: list[Path] = []
     project = os.environ.get("CLAUDE_PROJECT_DIR")
     if project:
         dirs.append(Path(project) / ".claude" / "agents")

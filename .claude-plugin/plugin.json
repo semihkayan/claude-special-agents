@@ -1,9 +1,0 @@
-{
-  "name": "special-agents",
-  "version": "0.2.0",
-  "description": "Plan/implement/review pipeline. Gates ExitPlanMode through self-review and clarity-check, then routes implementation by ambiguity score (Sonnet sub-agent for clean plans, Opus lead for ambiguous ones).",
-  "author": {
-    "name": "Semih Kayan"
-  },
-  "license": "Apache-2.0"
-}

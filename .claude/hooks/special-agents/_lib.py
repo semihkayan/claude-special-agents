@@ -15,10 +15,10 @@ from typing import NotRequired, TypedDict
 
 
 # === CONSTANTS ===
-STATE_DIR_NAME = ".claude/special-agents/state"
+STATE_DIR_NAME = ".claude/hooks/special-agents/state"
 PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 STATE_DIR = os.path.join(PROJECT_DIR, STATE_DIR_NAME)
-FALLBACK_PLANS_DIR = os.path.join(PROJECT_DIR, ".claude/special-agents/plans")
+FALLBACK_PLANS_DIR = os.path.join(PROJECT_DIR, ".claude/hooks/special-agents/plans")
 SESSION_STATE_PREFIX = "session"
 TTL_SECONDS = 3600
 
